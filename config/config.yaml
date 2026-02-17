@@ -1,0 +1,75 @@
+# Movie Recommender Configuration
+
+# Data paths
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  external_dir: "data/external"
+  movielens:
+    url: "https://files.grouplens.org/datasets/movielens/ml-25m.zip"
+    version: "25m"
+
+# Model configuration
+models:
+  save_dir: "models"
+
+  # Collaborative Filtering (SVD)
+  collaborative:
+    n_factors: 100
+    n_epochs: 20
+    lr_all: 0.005
+    reg_all: 0.02
+    random_state: 42
+
+  # Content-Based
+  content_based:
+    min_keyword_freq: 5
+    max_features: 1000
+    top_cast_count: 5
+
+  # Hybrid
+  hybrid:
+    # Adaptive weighting thresholds
+    new_user_threshold: 50      # ratings count for new users
+    moderate_user_threshold: 200 # ratings count for moderate users
+    new_user_cf_weight: 0.3
+    moderate_user_cf_weight: 0.6
+    established_user_cf_weight: 0.8
+
+# Data cleaning
+cleaning:
+  min_user_ratings: 20
+  min_movie_ratings: 5
+  outlier_threshold: 0.95  # Remove users with >95% same rating
+
+# TMDB API
+tmdb:
+  api_key_env: "TMDB_API_KEY"
+  base_url: "https://api.themoviedb.org/3"
+  rate_limit_requests: 40
+  rate_limit_seconds: 10
+  cache_file: "data/external/tmdb_cache.json"
+  top_movies_count: 5000
+
+# Letterboxd
+letterboxd:
+  fuzzy_match_threshold: 0.9
+  unmatched_output: "data/processed/unmatched_letterboxd.csv"
+
+# Evaluation
+evaluation:
+  test_size: 0.2
+  temporal_split: true
+  random_state: 42
+  metrics:
+    - "rmse"
+    - "mae"
+    - "precision_at_k"
+    - "recall_at_k"
+    - "ndcg_at_k"
+  k_values: [5, 10, 20]
+
+# Recommendations
+recommendations:
+  default_top_n: 20
+  min_rating_threshold: 4.0  # For implicit feedback
