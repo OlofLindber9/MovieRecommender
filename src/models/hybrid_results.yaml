@@ -1,0 +1,19 @@
+model: Hybrid (SGD-MF + CB)
+eval_sample_size: 50000
+rmse: 1.07157
+mae: 0.867961
+cf_best_rmse: 1.001906
+cf_best_mae: 0.767802
+cb_rmse_scaled: 1.1027
+cb_mae_scaled: 0.8604
+strategy: adaptive_alpha
+cb_calibration:
+  a: 0.233253
+  b: 3.096587
+alpha_thresholds:
+  new_user: 50
+  moderate: 200
+alpha_values:
+  new: 0.3
+  moderate: 0.6
+  power: 0.8
