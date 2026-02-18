@@ -1,0 +1,7 @@
+best_mae: 0.767801967878844
+best_model: SGD-MF
+best_rmse: 1.001905569461342
+split_type: temporal
+test_ratings: 4982962
+test_size: 0.2
+train_ratings: 19931848

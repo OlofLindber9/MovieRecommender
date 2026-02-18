@@ -11,6 +11,10 @@ import requests
 import zipfile
 from pathlib import Path
 import yaml
+import urllib3
+
+# Disable SSL warnings for trusted source
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -29,23 +33,43 @@ def download_file(url, destination):
     print(f"Downloading from {url}...")
     print(f"Saving to {destination}")
 
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
+    # Use verify=False for trusted MovieLens source to avoid SSL issues on Windows
+    # Set timeout and retry logic
+    import time
+    max_retries = 3
 
-    total_size = int(response.headers.get('content-length', 0))
-    block_size = 8192
-    downloaded = 0
+    for attempt in range(max_retries):
+        try:
+            # Add headers to mimic browser request
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
 
-    with open(destination, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=block_size):
-            if chunk:
-                f.write(chunk)
-                downloaded += len(chunk)
-                if total_size > 0:
-                    percent = (downloaded / total_size) * 100
-                    print(f"\rProgress: {percent:.1f}% ({downloaded / 1024 / 1024:.1f} MB)", end='')
+            response = requests.get(url, stream=True, verify=False, headers=headers, timeout=30)
+            response.raise_for_status()
 
-    print("\nDownload complete!")
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 8192
+            downloaded = 0
+
+            with open(destination, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=block_size):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = (downloaded / total_size) * 100
+                            print(f"\rProgress: {percent:.1f}% ({downloaded / 1024 / 1024:.1f} MB)", end='')
+
+            print("\nDownload complete!")
+            return
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"\n\nRetry {attempt + 1}/{max_retries - 1} after error: {e}")
+                time.sleep(2)
+            else:
+                raise
 
 
 def extract_zip(zip_path, extract_to):
