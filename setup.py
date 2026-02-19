@@ -34,6 +34,11 @@ setup(
         "dashboard": [
             "streamlit>=1.25.0",
         ],
+        # Neural CF (install PyTorch separately — see notebook 08)
+        # Windows: conda install -c conda-forge implicit  (for notebook 07 ALS variant)
+        "ml": [
+            "torch",   # CPU: pip install torch --index-url https://download.pytorch.org/whl/cpu
+        ],
     },
     python_requires=">=3.8",
 )
