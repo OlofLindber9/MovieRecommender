@@ -1,0 +1,7 @@
+alpha: 40.0
+factors: 64
+iterations: 15
+model: ALS
+ndcg@10: 0.0296
+precision@10: 0.0291
+regularization: 0.01

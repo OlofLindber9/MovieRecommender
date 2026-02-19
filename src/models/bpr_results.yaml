@@ -1,6 +1,6 @@
 lr: 0.05
 model: BPR-MF
 n_factors: 64
-ndcg@10: 0.0423
-precision@10: 0.042
+ndcg@10: 0.0434
+precision@10: 0.0417
 reg: 0.01
