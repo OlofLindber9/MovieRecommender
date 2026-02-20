@@ -152,8 +152,7 @@ Python · NumPy · SciPy · pandas · scikit-learn · PyTorch · Streamlit · ra
 
 ---
 
-## Data & license
+## Data
 
 - **MovieLens 25M** — F. Maxwell Harper and Joseph A. Konstan. *The MovieLens Datasets: History and Context.* ACM TiiS 5, 4 (2015). Available for non-commercial research use.
 - **TMDB** — movie metadata via the TMDB API (free tier, 40 req/10s)
-- This code: MIT License
