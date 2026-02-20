@@ -1,0 +1,5 @@
+best_val_rmse: 0.9935
+mae: 0.7608000040054321
+model: TwoTower-NCF
+n_epochs: 10
+rmse: 0.9934999942779541

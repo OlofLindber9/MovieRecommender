@@ -1,0 +1,27 @@
+emb_dim: 64
+genre_cols:
+- genre_(no genres listed)
+- genre_Action
+- genre_Adventure
+- genre_Animation
+- genre_Children
+- genre_Comedy
+- genre_Crime
+- genre_Documentary
+- genre_Drama
+- genre_Fantasy
+- genre_Film-Noir
+- genre_Horror
+- genre_IMAX
+- genre_Musical
+- genre_Mystery
+- genre_Romance
+- genre_Sci-Fi
+- genre_Thriller
+- genre_War
+- genre_Western
+hidden_dim: 128
+n_genres: 20
+n_items: 32424
+n_users: 162112
+out_dim: 32
