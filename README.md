@@ -1,310 +1,159 @@
-# Movie Recommender System
+# ReelRecs — Movie Recommender System
 
-A hybrid movie recommendation system that combines collaborative filtering and content-based approaches to provide personalized movie recommendations. Includes integration with Letterboxd for importing personal ratings.
+A full end-to-end movie recommendation system built on the **MovieLens 25M** dataset.
+Trained five distinct models (collaborative filtering, content-based, hybrid, ranking, and neural),
+then packaged them into an interactive Streamlit app.
 
-## Features
-
-- **Hybrid Recommendation Engine**: Combines collaborative filtering (SVD) and content-based filtering for accurate predictions
-- **Letterboxd Integration**: Import your ratings from Letterboxd exports
-- **Adaptive Weighting**: Automatically adjusts recommendation strategy based on user rating history
-- **Comprehensive Evaluation**: Multiple metrics (RMSE, MAE, Precision@K, Recall@K, NDCG@K)
-- **Rich Movie Metadata**: Leverages TMDB API for detailed movie information (cast, crew, keywords)
-
-## Architecture
-
-### Collaborative Filtering (CF)
-- Algorithm: SVD (Singular Value Decomposition)
-- Best for: Finding patterns across similar users
-- Handles: Personalization based on crowd wisdom
-
-### Content-Based (CB)
-- Features: Genres, cast, directors, keywords (TF-IDF weighted)
-- Best for: New movies, niche preferences, cold-start scenarios
-- Handles: Recommending similar movies to what you've enjoyed
-
-### Hybrid Approach
-Adaptive weighting based on user rating count:
-- **New users** (<50 ratings): 30% CF, 70% CB
-- **Moderate users** (50-200 ratings): 60% CF, 40% CB
-- **Established users** (>200 ratings): 80% CF, 20% CB
-
-## Project Structure
-
-```
-movie-recommender/
-├── data/
-│   ├── raw/                 # MovieLens 25M, Letterboxd exports (gitignored)
-│   ├── processed/           # Cleaned datasets (parquet format)
-│   └── external/            # TMDB API cache
-├── models/                  # Trained models (.pkl files)
-├── notebooks/               # Jupyter notebooks for development
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_data_cleaning.ipynb
-│   ├── 03_feature_engineering.ipynb
-│   ├── 04_collaborative_filtering.ipynb
-│   ├── 05_content_based.ipynb
-│   ├── 06_hybrid_model.ipynb
-│   └── 07_evaluation.ipynb
-├── src/                     # Python package
-│   ├── data/                # Data loading and cleaning
-│   ├── features/            # Feature engineering
-│   ├── models/              # Model implementations
-│   ├── matching/            # Title matching for Letterboxd
-│   └── utils/               # Utilities
-├── scripts/                 # Executable scripts
-│   ├── download_data.py
-│   ├── train_models.py
-│   ├── recommend.py
-│   └── letterboxd_upload.py
-└── tests/                   # Unit tests
-```
-
-## Installation
-
-### Prerequisites
-- Python 3.8+
-- pip
-
-### Setup
-
-1. **Clone the repository** (or navigate to project directory):
-```bash
-cd C:\Users\ololi\StudioProjects\movie-recommender
-```
-
-2. **Create virtual environment**:
-```bash
-python -m venv venv
-```
-
-3. **Activate virtual environment**:
-- Windows: `venv\Scripts\activate`
-- macOS/Linux: `source venv/bin/activate`
-
-4. **Install dependencies**:
-```bash
-pip install -r requirements.txt
-```
-
-Or install as package:
-```bash
-pip install -e .
-```
-
-For development (includes Jupyter, testing tools):
-```bash
-pip install -e ".[dev]"
-```
-
-5. **Configure TMDB API** (optional, but recommended):
-   - Create account at https://www.themoviedb.org/
-   - Get API key from https://www.themoviedb.org/settings/api
-   - Create `config/tmdb_api_key.env`:
-     ```
-     TMDB_API_KEY=your_api_key_here
-     ```
-
-## Quick Start
-
-### 1. Download MovieLens Dataset
-
-```bash
-python scripts/download_data.py
-```
-
-This downloads the MovieLens 25M dataset (~250 MB) and extracts it to `data/raw/ml-25m/`.
-
-### 2. Explore and Clean Data
-
-Open Jupyter notebooks:
-```bash
-jupyter notebook
-```
-
-Run in order:
-1. `01_data_exploration.ipynb` - Understand the dataset
-2. `02_data_cleaning.ipynb` - Clean and preprocess data
-
-### 3. Train Models
-
-```bash
-python scripts/train_models.py
-```
-
-Or use notebooks:
-- `03_feature_engineering.ipynb` - Prepare features
-- `04_collaborative_filtering.ipynb` - Train SVD model
-- `05_content_based.ipynb` - Build content-based model
-- `06_hybrid_model.ipynb` - Combine into hybrid system
-
-### 4. Get Recommendations
-
-#### Using Letterboxd Export
-
-1. Export your Letterboxd data:
-   - Log in to Letterboxd
-   - Settings → Data → Import & Export → Export Your Data
-   - Download and extract `ratings.csv`
-
-2. Get recommendations:
-```bash
-python scripts/recommend.py --letterboxd path/to/letterboxd_ratings.csv --top 20
-```
-
-#### Using User ID (MovieLens dataset)
-
-```bash
-python scripts/recommend.py --user-id 12345 --top 20
-```
-
-## Usage Examples
-
-### CLI Recommendations
-
-```bash
-# Get top 10 recommendations from Letterboxd export
-python scripts/recommend.py --letterboxd data/raw/letterboxd/ratings.csv --top 10
-
-# Get recommendations with explanations
-python scripts/recommend.py --letterboxd ratings.csv --top 20 --explain
-
-# Filter by genre
-python scripts/recommend.py --user-id 100 --top 15 --genre "Sci-Fi"
-```
-
-### Python API
-
-```python
-from src.models.hybrid import HybridRecommender
-from src.data.loaders import load_ratings, load_movies
-
-# Load data
-ratings = load_ratings('data/processed/ratings_cleaned.parquet')
-movies = load_movies('data/processed/movies_metadata.parquet')
-
-# Initialize recommender
-recommender = HybridRecommender.load('models/')
-
-# Get recommendations
-user_id = 12345
-recommendations = recommender.recommend(user_id, top_n=20)
-
-# Display results
-for movie_id, score in recommendations:
-    movie_title = movies.loc[movie_id, 'title']
-    print(f"{movie_title}: {score:.2f}")
-```
-
-## Datasets
-
-### MovieLens 25M
-- **Source**: https://grouplens.org/datasets/movielens/25m/
-- **Size**: 25 million ratings
-- **Users**: 162,000
-- **Movies**: 62,000
-- **License**: Available for research and education
-
-### TMDB API
-- **Source**: https://www.themoviedb.org/
-- **Free tier**: 40 requests / 10 seconds
-- **Data**: Movie metadata, cast, crew, keywords
-
-### Letterboxd
-- **User export**: CSV format with your personal ratings
-- **Format**: Date, Name, Year, Letterboxd URI, Rating
-
-## Model Performance
-
-Target metrics on test set:
-- **RMSE**: <0.85
-- **MAE**: <0.65
-- **Precision@10**: >0.35
-- **Recall@10**: >0.20
-- **NDCG@10**: >0.40
-
-## Configuration
-
-Edit `config/config.yaml` to customize:
-- Model hyperparameters (SVD factors, learning rate)
-- Data cleaning thresholds
-- Hybrid weighting strategy
-- TMDB API settings
-- Recommendation parameters
-
-## Development
-
-### Running Tests
-
-```bash
-pytest tests/
-```
-
-With coverage:
-```bash
-pytest --cov=src tests/
-```
-
-### Code Formatting
-
-```bash
-black src/ scripts/ tests/
-```
-
-### Linting
-
-```bash
-flake8 src/ scripts/ tests/
-```
-
-## Notebooks Overview
-
-1. **01_data_exploration.ipynb**: EDA on MovieLens dataset
-2. **02_data_cleaning.ipynb**: Data cleaning and preprocessing
-3. **03_feature_engineering.ipynb**: Create user-item matrix
-4. **04_collaborative_filtering.ipynb**: Train and evaluate SVD model
-5. **05_content_based.ipynb**: Build content-based recommender
-6. **06_hybrid_model.ipynb**: Combine CF and CB with adaptive weighting
-7. **07_evaluation.ipynb**: Comprehensive model evaluation
-
-## Troubleshooting
-
-### TMDB API Rate Limits
-If you hit rate limits, the system automatically caches responses. Wait a few seconds and retry.
-
-### Memory Issues
-For large datasets:
-- Use data subsets during development
-- Increase chunk size in data loaders
-- Use sparse matrices for CF
-
-### Title Matching Issues
-If Letterboxd movies aren't matching:
-- Check `data/processed/unmatched_letterboxd.csv`
-- Create custom mapping file
-- Adjust fuzzy matching threshold in config
-
-## Contributing
-
-This is a learning/portfolio project. Feel free to:
-- Open issues for bugs or questions
-- Submit pull requests for improvements
-- Fork and extend for your own use
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-- MovieLens dataset: F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets: History and Context. ACM Transactions on Interactive Intelligent Systems (TiiS) 5, 4: 19:1–19:19.
-- TMDB API for movie metadata
-- scikit-surprise library for collaborative filtering
-- Letterboxd for personal rating data
-
-## Contact
-
-For questions or feedback, please open an issue on GitHub.
+**Live demo:** https://oloflindber9-reelrecs.hf.space/
 
 ---
 
-**Built with**: Python, scikit-learn, scikit-surprise, pandas, TMDB API
+## What it does
+
+The app has three entry points for getting recommendations:
+
+- **Movie Search** — type any movie title and get the most similar films, ranked by content similarity (genres, tags, TMDB metadata)
+- **For You** — enter a MovieLens user ID and get personalised picks from the hybrid CF+CB model
+- **Letterboxd Import** — upload your Letterboxd `ratings.csv` export and get recommendations built from your personal watch history
+
+---
+
+## Dataset
+
+**MovieLens 25M** — a standard benchmark dataset from the GroupLens research lab.
+
+| | Raw | After cleaning |
+|---|---|---|
+| Ratings | 25,000,095 | 24,914,810 |
+| Users | 162,541 | 162,112 |
+| Movies | 59,047 | 32,424 |
+| Sparsity | 99.74% | 99.53% |
+
+Cleaning removed movies with fewer than 5 ratings, users with fewer than 20 ratings, and 403 users who assigned the same rating to >95% of movies.
+
+Rating scale: 0.5 – 5.0 (half-star). Mean rating: **3.53**.
+
+---
+
+## Models
+
+Five models were trained and evaluated, in increasing complexity.
+
+### 1. Collaborative Filtering (SGD Matrix Factorisation)
+
+Factorises the 162k × 32k user-item matrix into latent user and item embeddings, trained by stochastic gradient descent with L2 regularisation. Captures the "users like you also liked…" signal.
+
+| Hyperparameter | Value |
+|---|---|
+| Latent factors | 100 |
+| Epochs | 20 |
+| Learning rate | 0.005 |
+| Regularisation | 0.02 |
+
+Baselines compared: mean+bias baseline, SVD, item-based KNN, user-based KNN.
+
+| Model | RMSE | MAE |
+|---|---|---|
+| Baseline (mean + bias) | 1.0060 | 0.7672 |
+| SVD | 1.0042 | 0.7654 |
+| KNN Item-Based | 1.0628 | 0.8240 |
+| KNN User-Based | 1.0700 | 0.8316 |
+| **SGD-MF** | **1.0019** | **0.7678** |
+
+Evaluation used a temporal 80/20 split: models were trained on the oldest 80% of ratings and tested on the most recent 20%.
+
+### 2. Content-Based Filtering
+
+Builds a 1,021-dimensional sparse feature vector per movie and computes cosine similarity between movies. Features:
+
+- **20 genre flags** (multi-hot encoded, weight ×2)
+- **1,000 TF-IDF tag features** from user-generated tags (weight ×1)
+- **Normalised release year** (weight ×0.5)
+
+User preferences are represented as a weighted average of the movie vectors they have rated (weight = rating − 3.0 midpoint, so liked movies pull the profile positive and disliked movies pull it negative).
+
+RMSE on a 100k-sample from the test set: **1.1027** — worse than CF for rating prediction, but it works for cold-start movies and new users where CF has nothing to work with.
+
+### 3. Adaptive Hybrid (CF + CB)
+
+Blends the SGD-MF score and the CB-calibrated score with a weight α that scales with how much history the user has:
+
+| History | CF weight (α) | CB weight (1−α) |
+|---|---|---|
+| < 50 ratings (new user) | 30% | 70% |
+| 50–200 ratings | 60% | 40% |
+| > 200 ratings (power user) | 80% | 20% |
+
+The CB score is first calibrated with a linear regression fit on training data (`rating = 0.233 × similarity + 3.097`) so both models output on the same scale before blending.
+
+Hybrid RMSE on 50k test sample: **1.0716** — sits between pure CF and pure CB, with the key advantage of handling new users gracefully.
+
+### 4. Ranking Models (BPR & ALS)
+
+Unlike the rating-prediction models above, these treat recommendations as a **ranking problem** on implicit feedback (was a movie rated at all?).
+
+**BPR (Bayesian Personalised Ranking)** — samples (user, positive item, negative item) triplets and optimises a pairwise ranking loss. Implemented from scratch in NumPy with a vectorised sampler.
+
+**ALS (Alternating Least Squares)** — least-squares CF on confidence-weighted implicit data (`c = 1 + 40 × rating`), using the `implicit` library.
+
+Evaluation on 2,000 sampled users:
+
+| Model | P@10 | nDCG@10 |
+|---|---|---|
+| BPR | **0.042** | **0.042** |
+| ALS | 0.029 | 0.030 |
+
+BPR outperforms ALS across all cut-offs. Both are weaker than the rating-prediction models on precision, but optimise directly for ranking order rather than score accuracy.
+
+### 5. Two-Tower Neural CF
+
+A deep learning model where user and item representations are learned by separate MLP towers, then combined via dot product.
+
+**Architecture:**
+
+```
+User Tower:  Embedding(user_id, 64) → Linear(64→128) → ReLU → Linear(128→32)
+Item Tower:  Embedding(item_id, 64) || genre_vector(20) → Linear(84→128) → ReLU → Linear(128→32)
+Score:       dot(user_repr, item_repr) + user_bias + item_bias + global_bias
+```
+
+Total parameters: **12.67M**
+
+| Setting | Value |
+|---|---|
+| Batch size | 4,096 |
+| Optimiser | Adam (lr=1e-3, weight decay=1e-5) |
+| Scheduler | ReduceLROnPlateau (patience=2, factor=0.5) |
+| Epochs | 10 |
+| Loss | MSE |
+
+**Test RMSE: 0.9935** — the best of all models. Beats SGD-MF by ~0.009 RMSE points.
+
+---
+
+## TMDB Feature Enrichment
+
+The CB model was also enriched with data from The Movie Database (TMDB) API for the 5,000 most-rated movies. For each movie the API provides:
+
+- Plot overview (free text)
+- Director name (weighted ×3 in TF-IDF)
+- Top 5 cast members (weighted ×2)
+- TMDB keywords
+
+These are combined with the existing user tags and processed through a **3,000-feature TF-IDF** (up from 1,000), producing a 3,020-dimensional enriched feature matrix. This significantly improves similarity quality — e.g. *Toy Story* → *A Bug's Life*, *Monsters, Inc.* (vs. broad genre matches without TMDB).
+
+The enriched model is saved as `cb_enriched_model.pkl` and used by the app when available.
+
+---
+
+## Tech stack
+
+Python · NumPy · SciPy · pandas · scikit-learn · PyTorch · Streamlit · rapidfuzz · implicit · TMDB API · Hugging Face Spaces
+
+---
+
+## Data & license
+
+- **MovieLens 25M** — F. Maxwell Harper and Joseph A. Konstan. *The MovieLens Datasets: History and Context.* ACM TiiS 5, 4 (2015). Available for non-commercial research use.
+- **TMDB** — movie metadata via the TMDB API (free tier, 40 req/10s)
+- This code: MIT License
