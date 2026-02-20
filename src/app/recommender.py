@@ -120,11 +120,21 @@ def load_all() -> dict:
     """Load all pre-trained models and feature data into memory."""
     from sklearn.preprocessing import normalize as sk_normalize
 
-    with open(FEAT / "id_mappings.pkl", "rb") as f:
-        mappings = pickle.load(f)
+    # id_mappings.pkl — needed for CF/hybrid/NCF; optional for CB-only mode
+    mappings_path = FEAT / "id_mappings.pkl"
+    if mappings_path.exists():
+        with open(mappings_path, "rb") as f:
+            mappings = pickle.load(f)
+    else:
+        mappings = None
 
-    with open(MODELS / "sgd_mf_model.pkl", "rb") as f:
-        sgd = _ModelUnpickler(f).load()
+    # SGD-MF (large, ~150 MB) — optional; not needed for CB-only app features
+    sgd_path = MODELS / "sgd_mf_model.pkl"
+    if sgd_path.exists():
+        with open(sgd_path, "rb") as f:
+            sgd = _ModelUnpickler(f).load()
+    else:
+        sgd = None
 
     # Load enriched CB model if available, fall back to original
     cb_path = MODELS / "cb_enriched_model.pkl"
@@ -138,20 +148,28 @@ def load_all() -> dict:
         cb["movie_feature_matrix"], norm="l2"
     )
 
-    movies_df  = pd.read_parquet(FEAT / "movie_features.parquet")
-    ratings_df = pd.read_parquet(
-        PROC / "ratings_cleaned.parquet",
-        columns=["userId", "movieId", "rating"],
-    )
+    movies_df    = pd.read_parquet(FEAT / "movie_features.parquet")
     movies_by_id = movies_df.set_index("movieId")
 
+    # ratings_cleaned.parquet (~314 MB) — optional; only needed for CF/hybrid recs
+    ratings_path = PROC / "ratings_cleaned.parquet"
+    if ratings_path.exists():
+        ratings_df = pd.read_parquet(
+            ratings_path, columns=["userId", "movieId", "rating"]
+        )
+    else:
+        ratings_df = None
+
     # Precompute movie_idx → CB row lookup for vectorised hybrid scoring
-    mid_to_row = cb["movie_idx_lookup"]   # {movie_id → cb_row}
-    max_midx   = max(mappings["idx_to_movie"].keys()) + 1
-    midx_to_cb_row = np.full(max_midx, -1, dtype=np.int32)
-    for midx, movie_id in mappings["idx_to_movie"].items():
-        row = mid_to_row.get(movie_id, -1)
-        midx_to_cb_row[midx] = row
+    # (only needed when sgd and id_mappings are both available)
+    midx_to_cb_row = None
+    if sgd is not None and mappings is not None:
+        mid_to_row = cb["movie_idx_lookup"]   # {movie_id → cb_row}
+        max_midx   = max(mappings["idx_to_movie"].keys()) + 1
+        midx_to_cb_row = np.full(max_midx, -1, dtype=np.int32)
+        for midx, movie_id in mappings["idx_to_movie"].items():
+            row = mid_to_row.get(movie_id, -1)
+            midx_to_cb_row[midx] = row
 
     # ── Neural CF (optional) ──────────────────────────────────────────────────
     ncf              = None
@@ -159,7 +177,7 @@ def load_all() -> dict:
     ncf_config_path  = MODELS / "neural_cf_config.yaml"
     ncf_weights_path = MODELS / "neural_cf_best.pt"
 
-    if TORCH_AVAILABLE and ncf_config_path.exists() and ncf_weights_path.exists():
+    if TORCH_AVAILABLE and mappings is not None and ncf_config_path.exists() and ncf_weights_path.exists():
         import yaml
         with open(ncf_config_path) as f:
             ncf_cfg = yaml.safe_load(f)
@@ -275,6 +293,8 @@ def get_cf_recs(user_id: int, models: dict, n: int = 20) -> pd.DataFrame:
     ratings_df   = models["ratings_df"]
     movies_by_id = models["movies_by_id"]
 
+    if sgd is None or ratings_df is None or mappings is None:
+        return pd.DataFrame()
     if user_id not in mappings["user_id_map"]:
         return pd.DataFrame()
 
@@ -315,6 +335,8 @@ def get_ncf_recs(user_id: int, models: dict, n: int = 20) -> pd.DataFrame:
     ncf               = models["ncf"]
     mappings          = models["mappings"]
     ratings_df        = models["ratings_df"]
+    if ratings_df is None or mappings is None:
+        return pd.DataFrame()
     movies_by_id      = models["movies_by_id"]
     item_genre_tensor = models["item_genre_tensor"]
 
@@ -427,10 +449,14 @@ def get_hybrid_recs(user_id: int, models: dict, n: int = 20) -> pd.DataFrame:
     sgd            = models["sgd"]
     mappings       = models["mappings"]
     ratings_df     = models["ratings_df"]
+    if sgd is None or ratings_df is None or mappings is None:
+        return pd.DataFrame()
     movies_by_id   = models["movies_by_id"]
     cb             = models["cb"]
     feat_mat       = _feat_mat(cb)
-    midx_to_cb_row = models["midx_to_cb_row"]   # precomputed midx → cb_row
+    midx_to_cb_row = models["midx_to_cb_row"]
+    if midx_to_cb_row is None:
+        return pd.DataFrame()
 
     if user_id not in mappings["user_id_map"]:
         return pd.DataFrame()
