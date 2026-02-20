@@ -25,9 +25,11 @@ from recommender import (
     search_movies,
     get_similar_movies,
     get_cf_recs,
+    get_ncf_recs,
     get_hybrid_recs,
     build_profile,
     get_cb_recs_from_profile,
+    ncf_available,
 )
 from letterboxd import parse_letterboxd_csv, match_to_movielens
 
@@ -39,7 +41,7 @@ try:
 except Exception as exc:
     st.error(
         f"**Could not load models:** {exc}\n\n"
-        "Make sure you have run all six notebooks (01 – 06) first."
+        "Make sure you have run notebooks 01 – 06 first."
     )
     models_ok = False
 
@@ -49,10 +51,11 @@ with st.sidebar:
     st.title("🎬 Movie Recommender")
     st.markdown(
         """
-Built on **MovieLens 25M** (25 million ratings, 62 k movies).
+Built on **MovieLens 25M** (25 million ratings, 32 k movies).
 
 **Models available**
 - SGD Matrix Factorisation (CF)
+- Two-Tower Neural CF
 - TF-IDF + Genre Content-Based
 - Adaptive Hybrid blend
 
@@ -180,9 +183,11 @@ with tab2:
         user_id = st.number_input(
             "User ID", min_value=1, max_value=500_000, value=1, step=1
         )
+        ncf_label = "Neural CF (best RMSE)" if ncf_available(models) else "Neural CF (unavailable)"
         model_choice = st.selectbox(
             "Model",
-            ["Hybrid (recommended)", "Collaborative Filtering", "Content-Based"],
+            ["Hybrid (recommended)", ncf_label,
+             "Collaborative Filtering", "Content-Based"],
         )
         run_btn = st.button("Get Recommendations", type="primary")
 
@@ -210,6 +215,12 @@ with tab2:
                 if "Hybrid" in model_choice:
                     recs      = get_hybrid_recs(user_id, models, n=n_recs)
                     score_col = "hybrid_score"
+                elif "Neural" in model_choice:
+                    if not ncf_available(models):
+                        st.error("Neural CF model not loaded. Run notebook 08 first.")
+                        st.stop()
+                    recs      = get_ncf_recs(user_id, models, n=n_recs)
+                    score_col = "predicted_rating"
                 elif "Collaborative" in model_choice:
                     recs      = get_cf_recs(user_id, models, n=n_recs)
                     score_col = "predicted_rating"
@@ -277,7 +288,7 @@ Your ratings are used only to build a local taste profile — nothing is sent an
             help="Lower = more matches but more false positives.",
         )
 
-        with st.spinner("Fuzzy-matching against 62,000 MovieLens titles…"):
+        with st.spinner("Fuzzy-matching against 32,000 MovieLens titles…"):
             matched = match_to_movielens(lb_df, movies_df, threshold=threshold)
 
         n_matched = int(matched["matched"].sum())
